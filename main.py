@@ -1,0 +1,1 @@
+print("Smart Study Planner project started.")
