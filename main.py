@@ -52,9 +52,9 @@ def create_schedule(tasks, max_hours_per_day=4):
                 #subtracting the hours we just schedualed
                 remaining_hours -= hours_to_assign
     
-    #warning in case of impossible schedule (will still build partial schedule)
-    if remaining_hours > 0:
-        print(f"WARNING: '{task.name}' could not be fully scheduled. {remaining_hours}h left.")
+        #warning in case of impossible schedule (will still build partial schedule)
+        if remaining_hours > 0:
+            print(f"WARNING: '{task.name}' could not be fully scheduled. {remaining_hours}h left.")
 
     return schedule
 
@@ -69,23 +69,21 @@ def print_schedule(schedule):
 
 #only run the code below if this file is being run directly
 if __name__ == "__main__":
-    #creates a list of Task objects
-    #tasks = [
-    #    Task("Math HW", 2, 3), #creates task with name=Math HW, deadline=2 days, takes=3 hours
-    #    Task("CS Project", 3, 5),
-    #    Task("Exam Study", 1, 4)
-    #]
     
-    #tasks = [
-    #   Task("Big Project", 2, 10),
-    #   Task("Small Task", 1, 2)
-    #]
+    tasks = []
 
-    tasks = [
-        Task("Math HW", 2, 3, priority=1),
-        Task("Physics Review", 2, 2, priority=3),
-        Task("CS Project", 3, 5, priority=2)
-    ]
+    #ask user for the number of tasks they have
+    n = int(input("Enter number of tasks: "))
+
+    for i in range(n):
+        print(f"\nTask {i+1}")
+        #ask user to enter the details for each field in each task
+        name = input("Name: ")
+        deadline = int(input("Deadline (in days): "))
+        hours = int(input("Hours needed: "))
+        priority = int(input("Priority (1-3): "))
+
+        tasks.append(Task(name, deadline, hours, priority))
 
     #builds the schedule and prints it
     schedule = create_schedule(tasks)
