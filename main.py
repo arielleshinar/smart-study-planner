@@ -1,83 +1,120 @@
+import math
 class Task:
-#The program models study tasks as objects, sorts them by deadline, 
-#and uses a greedy scheduling algorithm to distribute task hours 
-#across available days while respecting a daily workload limit.
-#detects infeasible schedules
+    # The program models study tasks as objects, sorts them by deadline,
+    # and uses a greedy scheduling algorithm to distribute task hours
+    # across available days while respecting a daily workload limit.
 
-
-#the class represents one study task, e.g Math HW, CS Project..
-#each task has a few pieces of information: its name, deadline and how long it takes
     def __init__(self, name, deadline, hours, priority=1):
         self.name = name
         self.deadline = deadline
         self.hours = hours
         self.priority = priority
 
+
 def create_schedule(tasks, max_hours_per_day=4):
-    """"takes a list of tasks, builds a study schedule and returns that schedule
-    parameters: tasks - a list of Task objects, max_hours_per_day=4 - default max studytime per day is 4 hours"""
-    
-    # sort tasks by earliest deadline (t.deadline) if deadlines are equal then by priority (negative so descending)
+    """
+    Takes a list of tasks, builds a study schedule, and returns that schedule.
+
+    Parameters:
+    - tasks: a list of Task objects
+    - max_hours_per_day: default max study time per day is 4 hours
+    """
+
+    if not tasks:
+        return {}
+
+    # sort tasks by earliest deadline, then by higher priority
     tasks.sort(key=lambda t: (t.deadline, -t.priority))
-    #create an empty dictionary (schedule) to store the final plan 
-    #each day stores a list of (task_name, hours) pairs
+
+    # create an empty dictionary to store the final plan
+    # each day stores a list of (task_name, hours) pairs
     schedule = {}
 
-    #goes through the sorted list one task at a time
+    # ---------- global feasibility check ----------
+    # Are there enough total hours to finish all tasks?
+    max_deadline = max(task.deadline for task in tasks)
+    total_capacity = max_deadline * max_hours_per_day
+    total_required = sum(task.hours for task in tasks)
+
+    if total_required > total_capacity:
+        print(
+            f"WARNING: Total workload is {total_required}h, "
+            f"but only {total_capacity}h available."
+        )
+
+        required_per_day = total_required / max_deadline
+        print(
+            f"You need about {required_per_day:.1f}h/day "
+            f"to complete all tasks."
+        )
+
+        choice = input("Would you like to increase the daily limit? (y/n): ")
+
+        if choice.lower() == 'y':
+            max_hours_per_day = math.ceil(required_per_day)
+            print(f"Updating daily limit to {max_hours_per_day} hours.\n")
+
+    # ---------- actual scheduling ----------
     for task in tasks:
-        #at the start of each stack we store how many hours are still left to schedule
-        #as we place hours into days, we reduce this number
+        # calculate required daily hours for this specific task
+        required_per_day = task.hours / task.deadline
+
+        # store how many hours are still left to schedule
         remaining_hours = task.hours
 
-        #goes through the allowed days for this task
+        # per-task feasibility check
+        if required_per_day > max_hours_per_day:
+            print(
+                f"WARNING: '{task.name}' needs about {required_per_day:.1f}h/day "
+                f"to finish by day {task.deadline}, but the current limit is "
+                f"{max_hours_per_day}h/day."
+            )
+
+        # go through the allowed days for this task
         for day in range(1, task.deadline + 1):
             if remaining_hours == 0:
-                #if we already assigned the task fully stops loop
                 break
-            
-            #if this day doesn't exist yet in the dictionary, create it with an empty list so we can add tasks to it
+
+            # if this day doesn't exist yet, create it
             if day not in schedule:
                 schedule[day] = []
 
-            #checks how many hours of a certain day are already used
+            # calculate how many hours are already used that day
             used_hours = sum(h for _, h in schedule[day])
             available = max_hours_per_day - used_hours
 
-            #only add work if there is room
+            # only add work if there is room
             if available > 0:
-                #we assign the min of how much room is left today and how many task hours are sill needed
                 hours_to_assign = min(available, remaining_hours)
-                #add the task to the schedual (adding the task and the hours to assign to that days list)
                 schedule[day].append((task.name, hours_to_assign))
-                #subtracting the hours we just schedualed
                 remaining_hours -= hours_to_assign
-    
-        #warning in case of impossible schedule (will still build partial schedule)
+
+        # warning in case task still could not be fully scheduled
         if remaining_hours > 0:
-            print(f"WARNING: '{task.name}' could not be fully scheduled. {remaining_hours}h left.")
+            print(
+                f"WARNING: '{task.name}' could not be fully scheduled. "
+                f"{remaining_hours}h left."
+            )
 
     return schedule
 
 
 def print_schedule(schedule):
-    """takes the schedule dictionary and prints it nicely"""
-    #get the dictionary keys (the day numbers) in sorted order
+    """Takes the schedule dictionary and prints it nicely."""
     for day in sorted(schedule):
         print(f"Day {day}:")
         for task, hours in schedule[day]:
             print(f"  - {task}: {hours}h")
 
-#only run the code below if this file is being run directly
+
 if __name__ == "__main__":
-    
     tasks = []
 
-    #ask user for the number of tasks they have
+    # ask user for the number of tasks
     n = int(input("Enter number of tasks: "))
 
     for i in range(n):
         print(f"\nTask {i+1}")
-        #ask user to enter the details for each field in each task
         name = input("Name: ")
         deadline = int(input("Deadline (in days): "))
         hours = int(input("Hours needed: "))
@@ -85,6 +122,5 @@ if __name__ == "__main__":
 
         tasks.append(Task(name, deadline, hours, priority))
 
-    #builds the schedule and prints it
     schedule = create_schedule(tasks)
     print_schedule(schedule)
