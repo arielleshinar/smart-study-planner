@@ -7,17 +7,18 @@ class Task:
 
 #the class represents one study task, e.g Math HW, CS Project..
 #each task has a few pieces of information: its name, deadline and how long it takes
-    def __init__(self, name, deadline, hours):
+    def __init__(self, name, deadline, hours, priority=1):
         self.name = name
         self.deadline = deadline
         self.hours = hours
+        self.priority = priority
 
 def create_schedule(tasks, max_hours_per_day=4):
     """"takes a list of tasks, builds a study schedule and returns that schedule
     parameters: tasks - a list of Task objects, max_hours_per_day=4 - default max studytime per day is 4 hours"""
     
-    # sort tasks by earliest deadline (t.deadline)
-    tasks.sort(key=lambda t: t.deadline)
+    # sort tasks by earliest deadline (t.deadline) if deadlines are equal then by priority (negative so descending)
+    tasks.sort(key=lambda t: (t.deadline, -t.priority))
     #create an empty dictionary (schedule) to store the final plan 
     #each day stores a list of (task_name, hours) pairs
     schedule = {}
@@ -74,9 +75,16 @@ if __name__ == "__main__":
     #    Task("CS Project", 3, 5),
     #    Task("Exam Study", 1, 4)
     #]
+    
+    #tasks = [
+    #   Task("Big Project", 2, 10),
+    #   Task("Small Task", 1, 2)
+    #]
+
     tasks = [
-    Task("Big Project", 2, 10),
-    Task("Small Task", 1, 2)
+        Task("Math HW", 2, 3, priority=1),
+        Task("Physics Review", 2, 2, priority=3),
+        Task("CS Project", 3, 5, priority=2)
     ]
 
     #builds the schedule and prints it
