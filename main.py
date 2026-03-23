@@ -2,6 +2,7 @@ class Task:
 #The program models study tasks as objects, sorts them by deadline, 
 #and uses a greedy scheduling algorithm to distribute task hours 
 #across available days while respecting a daily workload limit.
+#detects infeasible schedules
 
 
 #the class represents one study task, e.g Math HW, CS Project..
@@ -23,7 +24,7 @@ def create_schedule(tasks, max_hours_per_day=4):
 
     #goes through the sorted list one task at a time
     for task in tasks:
-        #at the start of each stack we store how many hours are still lest to schedule
+        #at the start of each stack we store how many hours are still left to schedule
         #as we place hours into days, we reduce this number
         remaining_hours = task.hours
 
@@ -49,6 +50,10 @@ def create_schedule(tasks, max_hours_per_day=4):
                 schedule[day].append((task.name, hours_to_assign))
                 #subtracting the hours we just schedualed
                 remaining_hours -= hours_to_assign
+    
+    #warning in case of impossible schedule (will still build partial schedule)
+    if remaining_hours > 0:
+        print(f"WARNING: '{task.name}' could not be fully scheduled. {remaining_hours}h left.")
 
     return schedule
 
@@ -64,10 +69,14 @@ def print_schedule(schedule):
 #only run the code below if this file is being run directly
 if __name__ == "__main__":
     #creates a list of Task objects
+    #tasks = [
+    #    Task("Math HW", 2, 3), #creates task with name=Math HW, deadline=2 days, takes=3 hours
+    #    Task("CS Project", 3, 5),
+    #    Task("Exam Study", 1, 4)
+    #]
     tasks = [
-        Task("Math HW", 2, 3), #creates task with name=Math HW, deadline=2 days, takes=3 hours
-        Task("CS Project", 3, 5),
-        Task("Exam Study", 1, 4)
+    Task("Big Project", 2, 10),
+    Task("Small Task", 1, 2)
     ]
 
     #builds the schedule and prints it
