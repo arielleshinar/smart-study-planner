@@ -10,27 +10,23 @@ class Task:
         self.hours = hours
         self.priority = priority
 
-
-def create_schedule(tasks, max_hours_per_day=4):
+def create_schedule(tasks, max_hours_per_day=4, auto_adjust=False):
     """
-    Takes a list of tasks, builds a study schedule, and returns that schedule.
-
-    Parameters:
-    - tasks: a list of Task objects
-    - max_hours_per_day: default max study time per day is 4 hours
+    Builds a study schedule and returns:
+    - schedule: dict of day -> list of (task_name, hours)
+    - messages: list of warnings/info strings
+    - adjusted_limit: final max_hours_per_day after any automatic adjustment
     """
+    needs_adjustment = False
 
     if not tasks:
-        return {}
+        return {}, [], max_hours_per_day
 
-    # sort tasks by earliest deadline, then by higher priority
     tasks.sort(key=lambda t: (t.deadline, -t.priority))
-
-    # create an empty dictionary to store the final plan
-    # each day stores a list of (task_name, hours) pairs
     schedule = {}
+    messages = []
 
-    # ---------- global / day-by-day feasibility analysis ----------
+    # ---------- feasibility analysis ----------
     max_deadline = max(task.deadline for task in tasks)
     total_required = sum(task.hours for task in tasks)
     total_capacity = max_deadline * max_hours_per_day
@@ -38,87 +34,71 @@ def create_schedule(tasks, max_hours_per_day=4):
     needed_daily_limit = max_hours_per_day
     overload_found = False
 
-    # global workload check
     if total_required > total_capacity:
         overload_found = True
-        print(
-            f"WARNING: Total workload is {total_required}h, "
-            f"but only {total_capacity}h available."
+        messages.append(
+            f"Total workload is {total_required}h, but only {total_capacity}h are available."
         )
 
-    # day-by-day feasibility check
     for day in range(1, max_deadline + 1):
         required_by_day = sum(task.hours for task in tasks if task.deadline <= day)
         capacity_by_day = day * max_hours_per_day
 
         if required_by_day > capacity_by_day:
             overload_found = True
-
-            print(
-                f"WARNING: By day {day}, tasks require {required_by_day}h, "
-                f"but only {capacity_by_day}h are available."
+            messages.append(
+                f"By day {day}, tasks require {required_by_day}h, but only {capacity_by_day}h are available."
             )
-
             required_limit_for_day = math.ceil(required_by_day / day)
             needed_daily_limit = max(needed_daily_limit, required_limit_for_day)
 
     if overload_found and needed_daily_limit > max_hours_per_day:
-        print(
-            f"You need at least {needed_daily_limit}h/day "
-            f"to make the schedule feasible."
-        )
-
-        choice = input("Would you like to increase the daily limit? (y/n): ")
-
-        if choice.lower() == 'y':
+        needs_adjustment = True
+        
+        if auto_adjust:
+            messages.append(
+                f"Daily limit automatically increased from {max_hours_per_day}h to {needed_daily_limit}h."
+            )
             max_hours_per_day = needed_daily_limit
-            print(f"Updating daily limit to {max_hours_per_day} hours.\n")
         else:
-            print("Proceeding with the current daily limit. A partial schedule may be created.\n")
+            messages.append(
+                f"You need at least {needed_daily_limit}h/day to make the schedule feasible."
+            )
+            messages.append(
+                "Proceeding with the current daily limit. A partial schedule may be created."
+            )
 
     # ---------- actual scheduling ----------
     for task in tasks:
-        # calculate required daily hours for this specific task
         required_per_day = task.hours / task.deadline
-
-        # store how many hours are still left to schedule
         remaining_hours = task.hours
 
-        # per-task feasibility check
         if required_per_day > max_hours_per_day:
-            print(
-                f"WARNING: '{task.name}' needs about {required_per_day:.1f}h/day "
-                f"to finish by day {task.deadline}, but the current limit is "
-                f"{max_hours_per_day}h/day."
+            messages.append(
+                f"'{task.name}' needs about {required_per_day:.1f}h/day to finish by day {task.deadline}, but the current limit is {max_hours_per_day}h/day."
             )
 
-        # go through the allowed days for this task
         for day in range(1, task.deadline + 1):
             if remaining_hours == 0:
                 break
 
-            # if this day doesn't exist yet, create it
             if day not in schedule:
                 schedule[day] = []
 
-            # calculate how many hours are already used that day
             used_hours = sum(h for _, h in schedule[day])
             available = max_hours_per_day - used_hours
 
-            # only add work if there is room
             if available > 0:
                 hours_to_assign = min(available, remaining_hours)
                 schedule[day].append((task.name, hours_to_assign))
                 remaining_hours -= hours_to_assign
 
-        # warning in case task still could not be fully scheduled
         if remaining_hours > 0:
-            print(
-                f"WARNING: '{task.name}' could not be fully scheduled. "
-                f"{remaining_hours}h left."
+            messages.append(
+                f"'{task.name}' could not be fully scheduled. {remaining_hours}h left."
             )
 
-    return schedule
+    return schedule, messages, max_hours_per_day, needs_adjustment
 
 
 def print_schedule(schedule):
